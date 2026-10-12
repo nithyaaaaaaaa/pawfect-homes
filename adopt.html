@@ -272,11 +272,56 @@
         tag.textContent = pet.listing_type === "rescued_stray"
           ? "Rescued pet" : "Looking for a new home";
 
-        const applyButton = document.createElement("button");
-        applyButton.textContent = "Apply to Adopt";
-        applyButton.addEventListener("click", () => {
-          alert("Adoption applications are our next feature! 🐾");
-        });
+       
+const applyButton = document.createElement("button");
+applyButton.textContent = "Apply to Adopt";
+
+applyButton.addEventListener("click", async () => {
+  const { data: { user }, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !user) {
+    alert("Please sign in to your Pawfect Homes account before applying. 🐾");
+    return;
+  }
+
+  const fullName = prompt("What is your full name?");
+  if (!fullName || !fullName.trim()) return;
+
+  const phone = prompt("What is your contact number?");
+  if (!phone || !phone.trim()) return;
+
+  const livingSituation = prompt(
+    "Where will the pet live? (House, apartment, etc.)"
+  );
+  if (!livingSituation || !livingSituation.trim()) return;
+
+  const experience = prompt(
+    "Have you cared for pets before? Tell us briefly."
+  );
+  if (!experience || !experience.trim()) return;
+
+  const { error } = await supabaseClient
+    .from("adoption_applications")
+    .insert({
+      pet_id: pet.id,
+      applicant_id: user.id,
+      full_name: fullName.trim(),
+      phone: phone.trim(),
+      living_situation: livingSituation.trim(),
+      pet_experience: experience.trim(),
+      status: "pending"
+    });
+
+  if (error) {
+    console.error("Application error:", error);
+    alert("Application could not be submitted. Please try again.");
+    return;
+  }
+
+  alert("Your adoption application has been submitted! 🐾");
+});
+
 
         card.append(picture, heading, tag, details, description, applyButton);
         list.appendChild(card);
