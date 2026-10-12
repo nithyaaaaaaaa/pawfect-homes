@@ -455,24 +455,79 @@ loginForm.addEventListener("submit", async function(event) {
   }
 });
 
-supabaseClient.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    const accountLink = document.querySelector(
-      'footer a[href="account.html"]'
-    );
 
-    if (accountLink) {
-      accountLink.textContent = "Open My Dashboard";
-    }
+const authSection = document.getElementById("auth-section");
+const loggedOutLinks = document.getElementById("logged-out-links");
+const accountMenu = document.getElementById("account-menu");
+const accountMenuButton = document.getElementById("account-menu-button");
+const accountDropdown = document.getElementById("account-dropdown");
+const logoutButton = document.getElementById("logout-button");
+
+function updateAccountUI(session) {
+  const loggedIn = Boolean(session);
+
+  loggedOutLinks.hidden = loggedIn;
+  accountMenu.hidden = !loggedIn;
+  authSection.hidden = loggedIn;
+
+  if (loggedIn) {
+    const user = session.user;
+    const name =
+      user.user_metadata?.full_name ||
+      user.email?.split("@")[0] ||
+      "there";
+
+    accountMenuButton.textContent = `Hi, ${name} 👋 ▾`;
+  } else {
+    accountDropdown.hidden = true;
+    accountMenuButton.setAttribute("aria-expanded", "false");
+  }
+}
+
+accountMenuButton.addEventListener("click", function () {
+  accountDropdown.hidden = !accountDropdown.hidden;
+  accountMenuButton.setAttribute(
+    "aria-expanded",
+    String(!accountDropdown.hidden)
+  );
+});
+
+logoutButton.addEventListener("click", async function () {
+  logoutButton.disabled = true;
+  logoutButton.textContent = "Logging out...";
+
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    logoutButton.disabled = false;
+    logoutButton.textContent = "Log Out";
+    authMessage.textContent = "Couldn't log out: " + error.message;
+    return;
   }
 
-  if (requestedPage && allowedPages.includes(requestedPage)) {
+  window.location.href = "index.html";
+});
+
+supabaseClient.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error("Session check failed:", error);
+    return;
+  }
+
+  const session = data.session;
+  updateAccountUI(session);
+
+  if (session && requestedPage && allowedPages.includes(requestedPage)) {
+    window.location.href = destinationUrl;
+    return;
+  }
+
+  if (!session && requestedPage && allowedPages.includes(requestedPage)) {
     showAuth("login");
-    document.getElementById("auth-section").scrollIntoView({
-      behavior: "smooth"
-    });
+    authSection.scrollIntoView({ behavior: "smooth" });
   }
 });
+
 </script>
 
 </body>
