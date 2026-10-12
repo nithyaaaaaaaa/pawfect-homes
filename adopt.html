@@ -252,9 +252,25 @@
         heading.textContent = pet.name || "Pet looking for a home";
 
         const picture = document.createElement("div");
-        picture.className = "pet-icon";
-        picture.textContent = icon;
-        picture.setAttribute("aria-label", "Pet illustration");
+picture.className = "pet-icon";
+
+if (pet.photo_url) {
+  const img = document.createElement("img");
+  img.src = pet.photo_url;
+  img.alt = pet.name
+    ? "Photo of " + pet.name
+    : "Photo of " + (pet.animal_type || "pet");
+
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "cover";
+  img.style.borderRadius = "inherit";
+
+  picture.appendChild(img);
+} else {
+  picture.textContent = icon;
+  picture.setAttribute("aria-label", "Pet illustration");
+}
 
         const details = document.createElement("p");
         details.textContent =
