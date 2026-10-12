@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>List a Pet | Pawfect Homes</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8f6ef;
+      color: #304b35;
+    }
+
+    header {
+      background: #e8efe2;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    nav a {
+      color: #304b35;
+      margin: 0 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 30px auto;
+      padding: 28px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 4px 18px #0000000d;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .intro {
+      line-height: 1.6;
+      color: #586a59;
+    }
+
+    label {
+      display: block;
+      margin-top: 18px;
+      margin-bottom: 7px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5c5;
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+      color: #304b35;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 22px;
+      padding: 13px 20px;
+      width: 100%;
+      border: 0;
+      border-radius: 9px;
+      background: #59765b;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .note {
+      padding: 13px;
+      background: #f0f4eb;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    #message {
+      margin-top: 18px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #657565;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🐾 Pawfect Homes</h1>
+    <nav>
+      <a href="./index.html">Home</a>
+      <a href="./index.html#auth-section">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Give a Pet a Chance at a Forever Home 🏡</h2>
+
+    <p class="intro">
+      Rescued a stray or need to find a loving new home for your pet?
+      Share their details below. Every submission will be reviewed
+      before appearing publicly.
+    </p>
+
+    <p id="login-status" class="note">Checking your login...</p>
+
+    <form id="pet-form" class="hidden">
+
+      <label for="listing-type">What kind of listing is this? *</label>
+      <select id="listing-type" required>
+        <option value="">Choose one</option>
+        <option value="rescued_stray">I rescued a stray animal</option>
+        <option value="owner_rehoming">I need to rehome my own pet</option>
+      </select>
+
+      <label for="pet-name">Pet's name (if known)</label>
+      <input id="pet-name" type="text" maxlength="100"
+        placeholder="e.g. Coco">
+
+      <label for="animal-type">Animal type *</label>
+      <select id="animal-type" required>
+        <option value="">Choose one</option>
+        <option value="Dog">Dog</option>
+        <option value="Cat">Cat</option>
+        <option value="Rabbit">Rabbit</option>
+        <option value="Bird">Bird</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="age">Approximate age</label>
+      <input id="age" type="text" maxlength="100"
+        placeholder="e.g. Around 6 months or unknown">
+
+      <label for="breed">Breed (if known)</label>
+      <input id="breed" type="text" maxlength="150"
+        placeholder="e.g. Indie, Labrador, unknown">
+
+      <label for="area">Area where the pet is located *</label>
+      <input id="area" type="text" maxlength="200" required
+        placeholder="Enter area or neighbourhood">
+
+      <section id="stray-fields" class="hidden">
+        <label for="found-date">Date found (if known)</label>
+        <input id="found-date" type="date">
+
+        <label for="rescue-details">Where and how was the animal found?</label>
+        <textarea id="rescue-details" maxlength="3000"
+          placeholder="Describe the circumstances of the rescue."></textarea>
+
+        <p class="note">
+          If the animal might be lost, make reasonable efforts to locate
+          their family before arranging adoption.
+        </p>
+      </section>
+
+      <section id="owner-fields" class="hidden">
+        <label for="reason-category">Reason for rehoming *</label>
+        <select id="reason-category">
+          <option value="">Choose a reason</option>
+          <option value="Housing or relocation">Housing or relocation</option>
+          <option value="Financial circumstances">Financial circumstances</option>
+          <option value="Time or caregiving constraints">Time or caregiving constraints</option>
+          <option value="Household circumstances">Household circumstances</option>
+          <option value="Pet compatibility">Pet compatibility</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label for="reason-details">Explain the reason *</label>
+        <textarea id="reason-details" maxlength="3000"
+          placeholder="Please explain the circumstances honestly."></textarea>
+      </section>
+
+      <label for="vaccination">Vaccination information</label>
+      <textarea id="vaccination" maxlength="2000"
+        placeholder="Known vaccinations, dates, or unknown."></textarea>
+
+      <label for="medical">Known medical information</label>
+      <textarea id="medical" maxlength="3000"
+        placeholder="Known conditions, treatment, medication, or unknown."></textarea>
+
+      <label for="description">Tell us about this pet *</label>
+      <textarea id="description" maxlength="5000" required
+        placeholder="Describe their personality, behaviour, needs, and anything adopters should know."></textarea>
+
+      <p class="note">
+        Your listing will initially be marked as pending review.
+        Please provide accurate information. Do not include private
+        identity documents or sensitive personal information here.
+      </p>
+
+      <button id="submit-button" type="submit">
+        Submit Pet Listing
+      </button>
+    </form>
+
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer>
+    Pawfect Homes · Every paw deserves a loving home 🐾
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // Use the SAME Project URL and publishable key as index.html.
+    // The Project URL must NOT end with /rest/v1.
+
+    const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const form = document.getElementById("pet-form");
+    const loginStatus = document.getElementById("login-status");
+    const message = document.getElementById("message");
+    const listingType = document.getElementById("listing-type");
+    const ownerFields = document.getElementById("owner-fields");
+    const strayFields = document.getElementById("stray-fields");
+    const reasonCategory = document.getElementById("reason-category");
+    const reasonDetails = document.getElementById("reason-details");
+    const submitButton = document.getElementById("submit-button");
+
+    let currentUser = null;
+
+    async function checkLogin() {
+      const { data, error } = await supabaseClient.auth.getUser();
+
+      if (error || !data.user) {
+        loginStatus.textContent =
+          "Please log in on the homepage before listing a pet.";
+        return;
+      }
+
+      currentUser = data.user;
+      loginStatus.textContent = "You're logged in and ready to list a pet! 🐾";
+      form.classList.remove("hidden");
+    }
+
+    listingType.addEventListener("change", function () {
+      const isOwner = listingType.value === "owner_rehoming";
+      const isStray = listingType.value === "rescued_stray";
+
+      ownerFields.classList.toggle("hidden", !isOwner);
+      strayFields.classList.toggle("hidden", !isStray);
+
+      reasonCategory.required = isOwner;
+      reasonDetails.required = isOwner;
+    });
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      message.textContent = "";
+
+      if (!currentUser) {
+        message.textContent = "Please log in before submitting a listing.";
+        return;
+      }
+
+      const type = listingType.value;
+      const isOwner = type === "owner_rehoming";
+
+      if (isOwner &&
+          (!reasonCategory.value || !reasonDetails.value.trim())) {
+        message.textContent =
+          "Please select and explain the reason for rehoming.";
+        return;
+      }
+
+      let description = document.getElementById("description").value.trim();
+
+      if (type === "rescued_stray") {
+        const rescueDetails =
+          document.getElementById("rescue-details").value.trim();
+        const foundDate =
+          document.getElementById("found-date").value;
+
+        if (foundDate) {
+          description += "\n\nDate found: " + foundDate;
+        }
+
+        if (rescueDetails) {
+          description += "\n\nRescue circumstances: " + rescueDetails;
+        }
+      }
+
+      const rehomingReason = isOwner
+        ? reasonCategory.value + ": " + reasonDetails.value.trim()
+        : null;
+
+      const pet = {
+        owner_id: currentUser.id,
+        listing_type: type,
+        name: document.getElementById("pet-name").value.trim() || null,
+        animal_type: document.getElementById("animal-type").value,
+        age_description:
+          document.getElementById("age").value.trim() || "Unknown",
+        breed: document.getElementById("breed").value.trim() || "Unknown",
+        found_area: document.getElementById("area").value.trim(),
+        vaccination_info:
+          document.getElementById("vaccination").value.trim() || "Unknown",
+        medical_info:
+          document.getElementById("medical").value.trim() || "Unknown",
+        description: description,
+        rehoming_reason: rehomingReason,
+        verification_status: "pending",
+        status: "pending"
+      };
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting...";
+      message.textContent = "Saving your listing...";
+
+      try {
+        const { error } = await supabaseClient
+          .from("pets")
+          .insert([pet]);
+
+        if (error) {
+          throw error;
+        }
+
+        form.reset();
+        ownerFields.classList.add("hidden");
+        strayFields.classList.add("hidden");
+        reasonCategory.required = false;
+        reasonDetails.required = false;
+
+        message.textContent =
+          "Listing submitted successfully! It is now pending review. 🐾";
+      } catch (error) {
+        console.error("Pet listing error:", error);
+        message.textContent =
+          "We couldn't save your listing: " + error.message;
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit Pet Listing";
+      }
+    });
+
+    checkLogin();
+  </script>
+</body>
+</html>
