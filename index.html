@@ -377,7 +377,7 @@ const allowedPages = ["adopt", "list-pet", "account"];
 
 const destinationPage = allowedPages.includes(requestedPage)
   ? requestedPage + ".html"
-  : "account.html";
+  : "index.html";
 
 const destinationUrl = new URL(
   destinationPage,
