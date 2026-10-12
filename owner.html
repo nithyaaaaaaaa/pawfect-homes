@@ -1,0 +1,230 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard | Pawfect Homes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8f6ef;
+      color: #263b2b;
+    }
+    nav {
+      padding: 18px 7%;
+      background: #fffdf7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e0e5d9;
+    }
+    nav strong { font-size: 20px; }
+    nav a { color: #355e3b; text-decoration: none; margin-left: 14px; }
+    header { padding: 35px 7% 15px; }
+    header h1 { margin-bottom: 8px; }
+    #message { margin: 0 7% 20px; }
+    main {
+      padding: 0 7% 50px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e0e5d9;
+      border-radius: 16px;
+      padding: 22px;
+      overflow-wrap: anywhere;
+    }
+    .card h2 { margin-top: 0; }
+    .details { line-height: 1.7; white-space: pre-line; }
+    .status {
+      display: inline-block;
+      background: #edf3e8;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    button {
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 6px 5px 0 0;
+      font-size: 14px;
+    }
+    .choose { background: #355e3b; color: white; }
+    .decline { background: #f5e7e3; color: #873c31; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <nav>
+    <strong>🐾 Pawfect Homes</strong>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="adopt.html">Adopt</a>
+      <a href="list-pet.html">Rehome</a>
+    </div>
+  </nav>
+
+  <header>
+    <h1>Your Adoption Applications 🏡</h1>
+    <p>Review applicants for pets you've listed. Each pet can have only one chosen adopter.</p>
+  </header>
+
+  <p id="message">Checking your account...</p>
+  <main id="applications"></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const message = document.getElementById("message");
+    const container = document.getElementById("applications");
+
+    async function loadApplications() {
+      const { data: { user }, error: authError } =
+        await supabaseClient.auth.getUser();
+
+      if (authError || !user) {
+        message.textContent =
+          "Please sign in to the Pawfect Homes account you used to list your pet.";
+        return;
+      }
+
+      message.textContent = "Loading applications...";
+
+      const { data, error } = await supabaseClient.rpc(
+        "owner_list_applications"
+      );
+
+      if (error) {
+        console.error("Load error:", error);
+        message.textContent =
+          "Could not load applications: " + error.message;
+        return;
+      }
+
+      container.replaceChildren();
+
+      if (!data || data.length === 0) {
+        message.textContent =
+          "No applications yet for your pets. Check back later! 🐾";
+        return;
+      }
+
+      message.textContent = data.length + " application(s) found.";
+
+      data.forEach(application => {
+        const card = document.createElement("article");
+        card.className = "card";
+
+        const title = document.createElement("h2");
+        title.textContent = application.pet_name || "Your pet";
+
+        const status = document.createElement("span");
+        status.className = "status";
+        status.textContent =
+          "Application: " + application.application_status;
+
+        const details = document.createElement("p");
+        details.className = "details";
+        details.textContent =
+          "Applicant: " + (application.full_name || "Not provided") +
+          "\nPhone: " + (application.phone || "Not provided") +
+          "\nLiving situation: " +
+          (application.living_situation || "Not provided") +
+          "\nPet experience: " +
+          (application.pet_experience || "Not provided") +
+          "\nSubmitted: " +
+          (application.submitted_at
+            ? new Date(application.submitted_at).toLocaleString()
+            : "Unknown");
+
+        card.append(title, status, details);
+
+        if (application.application_status === "pending") {
+          const choose = document.createElement("button");
+          choose.className = "choose";
+          choose.textContent = "Choose this adopter";
+
+          choose.addEventListener("click", async () => {
+            if (!confirm(
+              "Choose " + application.full_name +
+              " for " + application.pet_name +
+              "? All other pending applications for this pet will be declined, and the pet will be marked adopted."
+            )) return;
+
+            choose.disabled = true;
+            const { data: success, error: reviewError } =
+              await supabaseClient.rpc("owner_review_application", {
+                p_application_id: application.application_id,
+                p_new_status: "approved"
+              });
+
+            if (reviewError || success !== true) {
+              alert(
+                "Could not choose this applicant: " +
+                (reviewError?.message || "The application may already have been reviewed.")
+              );
+              choose.disabled = false;
+              return;
+            }
+
+            alert("Adopter selected successfully! 🐾");
+            await loadApplications();
+          });
+
+          const decline = document.createElement("button");
+          decline.className = "decline";
+          decline.textContent = "Decline";
+
+          decline.addEventListener("click", async () => {
+            if (!confirm(
+              "Decline this application from " +
+              application.full_name + "?"
+            )) return;
+
+            decline.disabled = true;
+            const { data: success, error: reviewError } =
+              await supabaseClient.rpc("owner_review_application", {
+                p_application_id: application.application_id,
+                p_new_status: "declined"
+              });
+
+            if (reviewError || success !== true) {
+              alert(
+                "Could not decline this application: " +
+                (reviewError?.message || "It may already have been reviewed.")
+              );
+              decline.disabled = false;
+              return;
+            }
+
+            await loadApplications();
+          });
+
+          card.append(choose, decline);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    loadApplications();
+  </script>
+</body>
+</html>
