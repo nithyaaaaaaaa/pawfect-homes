@@ -273,6 +273,7 @@
           ? "Rescued pet" : "Looking for a new home";
 
        
+
 const applyButton = document.createElement("button");
 applyButton.textContent = "Apply to Adopt";
 
@@ -285,41 +286,134 @@ applyButton.addEventListener("click", async () => {
     return;
   }
 
-  const fullName = prompt("What is your full name?");
-  if (!fullName || !fullName.trim()) return;
+  const oldForm = document.getElementById("adoption-form");
+  if (oldForm) oldForm.remove();
 
-  const phone = prompt("What is your contact number?");
-  if (!phone || !phone.trim()) return;
+  const form = document.createElement("form");
+  form.id = "adoption-form";
+  form.style.cssText = `
+    background: #fffdf7;
+    padding: 24px;
+    margin-top: 20px;
+    border-radius: 16px;
+    border: 1px solid #d6dfd0;
+    display: grid;
+    gap: 14px;
+    max-width: 500px;
+  `;
 
-  const livingSituation = prompt(
-    "Where will the pet live? (House, apartment, etc.)"
-  );
-  if (!livingSituation || !livingSituation.trim()) return;
+  const heading = document.createElement("h2");
+  heading.textContent = "Adoption Application 🐾";
+  form.appendChild(heading);
 
-  const experience = prompt(
-    "Have you cared for pets before? Tell us briefly."
-  );
-  if (!experience || !experience.trim()) return;
+  function addField(labelText, name, placeholder, required = true) {
+    const label = document.createElement("label");
+    label.textContent = labelText;
+    label.style.fontWeight = "600";
 
-  const { error } = await supabaseClient
-    .from("adoption_applications")
-    .insert({
-      pet_id: pet.id,
-      applicant_id: user.id,
-      full_name: fullName.trim(),
-      phone: phone.trim(),
-      living_situation: livingSituation.trim(),
-      pet_experience: experience.trim(),
-      status: "pending"
-    });
+    const input = document.createElement("input");
+    input.name = name;
+    input.placeholder = placeholder;
+    input.required = required;
+    input.style.cssText = `
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border: 1px solid #b8c9b1;
+      border-radius: 8px;
+      font: inherit;
+    `;
 
-  if (error) {
-    console.error("Application error:", error);
-    alert("Application error: " + error.message);
-    return;
+    label.appendChild(input);
+    form.appendChild(label);
+    return input;
   }
 
-  alert("Your adoption application has been submitted! 🐾");
+  const fullName = addField("Full name *", "full_name", "Enter your full name");
+  const phone = addField("Mobile number *", "phone", "10-digit mobile number");
+  phone.type = "tel";
+  phone.inputMode = "numeric";
+  phone.maxLength = 10;
+  phone.pattern = "[6-9][0-9]{9}";
+  phone.title = "Enter a valid 10-digit Indian mobile number.";
+
+  const living = addField(
+    "Where will the pet live? *",
+    "living_situation",
+    "House, apartment, etc."
+  );
+
+  const experience = addField(
+    "Have you cared for pets before? *",
+    "pet_experience",
+    "Describe your experience"
+  );
+
+  const message = document.createElement("p");
+  message.setAttribute("role", "status");
+  form.appendChild(message);
+
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = "Submit Application 🐾";
+  submit.style.cssText = `
+    background: #355e3b;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+  `;
+  form.appendChild(submit);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!form.reportValidity()) return;
+
+    if (!/^[6-9]\d{9}$/.test(phone.value.trim())) {
+      phone.setCustomValidity(
+        "Enter a valid 10-digit Indian mobile number."
+      );
+      phone.reportValidity();
+      phone.setCustomValidity("");
+      return;
+    }
+
+    submit.disabled = true;
+    message.textContent = "Submitting your application...";
+
+    const { error } = await supabaseClient
+      .from("adoption_applications")
+      .insert({
+        pet_id: pet.id,
+        applicant_id: user.id,
+        full_name: fullName.value.trim(),
+        phone: phone.value.trim(),
+        living_situation: living.value.trim(),
+        pet_experience: experience.value.trim(),
+        status: "pending"
+      });
+
+    if (error) {
+      console.error("Application error:", error);
+      message.textContent =
+        "Could not submit your application: " + error.message;
+      submit.disabled = false;
+      return;
+    }
+
+    message.textContent =
+      "Application submitted successfully! 🐾 We'll be in touch.";
+    submit.remove();
+  });
+
+  const petCard = applyButton.parentElement;
+  petCard.appendChild(form);
+  form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 
 
