@@ -315,7 +315,7 @@ applyButton.addEventListener("click", async () => {
 
   if (error) {
     console.error("Application error:", error);
-    alert("Application could not be submitted. Please try again.");
+    alert("Application error: " + error.message);
     return;
   }
 
