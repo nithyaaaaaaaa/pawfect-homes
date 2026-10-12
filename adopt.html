@@ -1,0 +1,294 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adopt a Pet | Pawfect Homes</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #faf8f2;
+      color: #304638;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 18px 7%;
+      background: #fffdf8;
+      border-bottom: 1px solid #e7e5da;
+    }
+
+    nav strong { font-size: 22px; }
+
+    nav a {
+      color: #304638;
+      text-decoration: none;
+      margin-left: 16px;
+      font-weight: bold;
+    }
+
+    header {
+      text-align: center;
+      padding: 48px 20px 28px;
+    }
+
+    header h1 {
+      font-size: clamp(30px, 5vw, 44px);
+      margin-bottom: 12px;
+    }
+
+    header p {
+      color: #657267;
+      line-height: 1.6;
+    }
+
+    .filters {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 0 20px 28px;
+    }
+
+    select, input {
+      padding: 12px;
+      border: 1px solid #d4d9cf;
+      border-radius: 9px;
+      background: white;
+      color: #304638;
+      font-size: 15px;
+    }
+
+    #pet-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 320px));
+      justify-content: center;
+      gap: 22px;
+      padding: 0 7% 55px;
+    }
+
+    .pet-card {
+      background: white;
+      border: 1px solid #e8e7dd;
+      border-radius: 15px;
+      padding: 22px;
+      box-shadow: 0 5px 18px #3046380a;
+    }
+
+    .pet-icon {
+      background: #edf1e7;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 55px;
+      padding: 24px;
+    }
+
+    .pet-card h2 { margin-bottom: 8px; }
+
+    .pet-card p {
+      color: #647166;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #edf1e7;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 9px;
+      background: #405b46;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover { background: #2e4635; }
+
+    .empty {
+      text-align: center;
+      padding: 30px 20px 65px;
+      color: #657267;
+      line-height: 1.7;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      background: #edf1e7;
+      color: #526453;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <strong>🐾 Pawfect Homes</strong>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="adopt.html">Adopt</a>
+      <a href="list-pet.html">Rehome</a>
+    </div>
+  </nav>
+
+  <header>
+    <h1>Find Your Pawfect Friend 🐾</h1>
+    <p>Every pet deserves a loving home. Your new best friend might be here.</p>
+  </header>
+
+  <div class="filters">
+    <select id="animal-filter">
+      <option value="all">All animals</option>
+      <option value="dog">Dogs</option>
+      <option value="cat">Cats</option>
+      <option value="other">Other animals</option>
+    </select>
+
+    <input id="search" type="search"
+      placeholder="Search by name or breed...">
+  </div>
+
+  <main id="pet-list"></main>
+  <div id="message" class="empty">Loading available pets...</div>
+
+  <footer>Made with ❤️ for pets looking for a home.</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    let pets = [];
+
+    async function loadPets() {
+      const message = document.getElementById("message");
+      message.textContent = "Loading available pets...";
+
+      const { data, error } = await supabaseClient
+        .from("pets")
+        .select("id, name, animal_type, age_description, breed, found_area, description, listing_type")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        message.textContent =
+          "We couldn't load pets right now. Please try again later.";
+        console.error("Pet loading error:", error);
+        return;
+      }
+
+      pets = data || [];
+      renderPets();
+    }
+
+    function renderPets() {
+      const list = document.getElementById("pet-list");
+      const message = document.getElementById("message");
+      const animal = document.getElementById("animal-filter").value;
+      const search = document.getElementById("search").value
+        .trim().toLowerCase();
+
+      list.innerHTML = "";
+
+      const filtered = pets.filter(pet => {
+        const type = (pet.animal_type || "").toLowerCase();
+        const name = (pet.name || "").toLowerCase();
+        const breed = (pet.breed || "").toLowerCase();
+
+        const matchesAnimal = animal === "all" ||
+          type === animal ||
+          (animal === "other" && !["dog", "cat"].includes(type));
+
+        const matchesSearch =
+          name.includes(search) || breed.includes(search);
+
+        return matchesAnimal && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        message.textContent = pets.length === 0
+          ? "No approved pets are available just yet. Please check back soon! 🐾"
+          : "No pets match your search. Try another filter.";
+        message.style.display = "block";
+        return;
+      }
+
+      message.style.display = "none";
+
+      filtered.forEach(pet => {
+        const card = document.createElement("article");
+        card.className = "pet-card";
+
+        const icon = (pet.animal_type || "").toLowerCase() === "cat"
+          ? "🐱"
+          : (pet.animal_type || "").toLowerCase() === "dog"
+          ? "🐶" : "🐾";
+
+        const heading = document.createElement("h2");
+        heading.textContent = pet.name || "Pet looking for a home";
+
+        const picture = document.createElement("div");
+        picture.className = "pet-icon";
+        picture.textContent = icon;
+        picture.setAttribute("aria-label", "Pet illustration");
+
+        const details = document.createElement("p");
+        details.textContent =
+          "Animal: " + (pet.animal_type || "Unknown") +
+          "\nAge: " + (pet.age_description || "Unknown") +
+          "\nBreed: " + (pet.breed || "Unknown") +
+          "\nArea: " + (pet.found_area || "Not provided");
+        details.style.whiteSpace = "pre-line";
+
+        const description = document.createElement("p");
+        description.textContent = pet.description || "More details coming soon.";
+
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = pet.listing_type === "rescued_stray"
+          ? "Rescued pet" : "Looking for a new home";
+
+        const applyButton = document.createElement("button");
+        applyButton.textContent = "Apply to Adopt";
+        applyButton.addEventListener("click", () => {
+          alert("Adoption applications are our next feature! 🐾");
+        });
+
+        card.append(picture, heading, tag, details, description, applyButton);
+        list.appendChild(card);
+      });
+    }
+
+    document.getElementById("animal-filter")
+      .addEventListener("change", renderPets);
+    document.getElementById("search")
+      .addEventListener("input", renderPets);
+
+    loadPets();
+  </script>
+</body>
+</html>
