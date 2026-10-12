@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account | Pawfect Homes</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8f6ef;
+      color: #263b2b;
+    }
+
+    nav {
+      padding: 18px 7%;
+      background: #fffdf7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e0e5d9;
+    }
+
+    nav strong { font-size: 20px; }
+    nav a { color: #355e3b; text-decoration: none; margin-left: 14px; }
+
+    header { padding: 35px 7% 15px; }
+
+    header h1 { margin-bottom: 8px; }
+
+    .tabs {
+      padding: 0 7% 24px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .tab { background: #e7ecdf; color: #263b2b; }
+    .tab.active { background: #355e3b; color: white; }
+
+    #message { margin: 0 7% 20px; }
+
+    main {
+      padding: 0 7% 50px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e0e5d9;
+      border-radius: 15px;
+      padding: 20px;
+      overflow-wrap: anywhere;
+    }
+
+    .card h2 { margin-top: 0; }
+
+    .status {
+      display: inline-block;
+      background: #edf3e8;
+      border-radius: 20px;
+      padding: 6px 10px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .details { line-height: 1.7; white-space: pre-line; }
+  </style>
+</head>
+<body>
+  <nav>
+    <strong>🐾 Pawfect Homes</strong>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="adopt.html">Adopt</a>
+      <a href="list-pet.html">Rehome</a>
+    </div>
+  </nav>
+
+  <header>
+    <h1>My Account 🐾</h1>
+    <p>Keep track of your pets and adoption applications.</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="petsTab">My Pet Listings</button>
+    <button class="tab" id="appsTab">My Adoption Applications</button>
+    <button class="tab" id="refreshBtn">Refresh</button>
+  </div>
+
+  <p id="message">Checking your account...</p>
+  <main id="content"></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "YOUR_PROJECT_URL";
+    const SUPABASE_PUBLISHABLE_KEY = "YOUR_PUBLISHABLE_KEY";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const message = document.getElementById("message");
+    const content = document.getElementById("content");
+    const petsTab = document.getElementById("petsTab");
+    const appsTab = document.getElementById("appsTab");
+    let currentTab = "pets";
+
+    function showTab(tab) {
+      currentTab = tab;
+      petsTab.classList.toggle("active", tab === "pets");
+      appsTab.classList.toggle("active", tab === "apps");
+      loadData();
+    }
+
+    function addCard(titleText, statusText, detailsText) {
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const title = document.createElement("h2");
+      title.textContent = titleText || "Untitled";
+
+      const status = document.createElement("span");
+      status.className = "status";
+      status.textContent = statusText || "Unknown";
+
+      const details = document.createElement("p");
+      details.className = "details";
+      details.textContent = detailsText;
+
+      card.append(title, status, details);
+      content.appendChild(card);
+    }
+
+    async function loadData() {
+      content.replaceChildren();
+      message.textContent = "Loading...";
+
+      const { data: { user }, error: authError } =
+        await supabaseClient.auth.getUser();
+
+      if (authError || !user) {
+        message.textContent =
+          "Please sign in first using your Pawfect Homes account.";
+        return;
+      }
+
+      if (currentTab === "pets") {
+        const { data, error } = await supabaseClient.rpc("my_pet_listings");
+
+        if (error) {
+          console.error(error);
+          message.textContent = "Could not load listings: " + error.message;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          message.textContent = "You haven't submitted any pet listings yet.";
+          return;
+        }
+
+        message.textContent = data.length + " pet listing(s).";
+
+        data.forEach(pet => {
+          addCard(
+            pet.name,
+            "Listing: " + pet.status,
+            "Animal: " + (pet.animal_type || "Not specified") +
+            "\nBreed: " + (pet.breed || "Not specified") +
+            "\nAge: " + (pet.age_description || "Not specified") +
+            "\nSubmitted: " + new Date(pet.created_at).toLocaleDateString()
+          );
+        });
+      } else {
+        const { data, error } = await supabaseClient.rpc(
+          "my_adoption_applications"
+        );
+
+        if (error) {
+          console.error(error);
+          message.textContent =
+            "Could not load applications: " + error.message;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          message.textContent = "You haven't applied to adopt any pets yet.";
+          return;
+        }
+
+        message.textContent = data.length + " adoption application(s).";
+
+        data.forEach(application => {
+          addCard(
+            application.pet_name,
+            "Application: " + application.application_status,
+            "Animal: " + (application.animal_type || "Not specified") +
+            "\nSubmitted: " +
+            new Date(application.submitted_at).toLocaleDateString()
+          );
+        });
+      }
+    }
+
+    petsTab.addEventListener("click", () => showTab("pets"));
+    appsTab.addEventListener("click", () => showTab("apps"));
+    document.getElementById("refreshBtn").addEventListener("click", loadData);
+
+    loadData();
+  </script>
+</body>
+</html>
