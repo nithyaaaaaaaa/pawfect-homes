@@ -302,6 +302,79 @@
     SUPABASE_PUBLISHABLE_KEY
   );
 </script>
+
+<section id="auth-section" style="max-width:420px;margin:40px auto;padding:24px;background:#e8efe2;border-radius:16px;font-family:Arial,sans-serif;color:#304b35;">
+  <h2>Welcome to Pawfect Homes 🐾</h2>
+  <p>Create an account or log in to continue.</p>
+
+  <form id="signup-form">
+    <h3>Create Account</h3>
+    <input id="signup-email" type="email" placeholder="Email address" required style="width:95%;padding:10px;margin:6px 0;">
+    <input id="signup-password" type="password" placeholder="Password (at least 6 characters)" minlength="6" required style="width:95%;padding:10px;margin:6px 0;">
+    <button type="submit" style="padding:10px 16px;background:#59765b;color:white;border:0;border-radius:8px;cursor:pointer;">Sign Up</button>
+  </form>
+
+  <hr style="margin:24px 0;">
+
+  <form id="login-form">
+    <h3>Already have an account?</h3>
+    <input id="login-email" type="email" placeholder="Email address" required style="width:95%;padding:10px;margin:6px 0;">
+    <input id="login-password" type="password" placeholder="Password" required style="width:95%;padding:10px;margin:6px 0;">
+    <button type="submit" style="padding:10px 16px;background:#59765b;color:white;border:0;border-radius:8px;cursor:pointer;">Log In</button>
+  </form>
+
+  <p id="auth-message" role="status" aria-live="polite"></p>
+</section>
+
+<script>
+  const signupForm = document.getElementById("signup-form");
+  const loginForm = document.getElementById("login-form");
+  const authMessage = document.getElementById("auth-message");
+
+  signupForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+    authMessage.textContent = "Creating your account...";
+
+    const email = document.getElementById("signup-email").value;
+    const password = document.getElementById("signup-password").value;
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        emailRedirectTo: window.location.origin + window.location.pathname
+      }
+    });
+
+    if (error) {
+      authMessage.textContent = error.message;
+    } else if (data.session) {
+      authMessage.textContent = "Account created! You're logged in.";
+    } else {
+      authMessage.textContent = "Account created! Check your email for a confirmation link.";
+    }
+  });
+
+  loginForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+    authMessage.textContent = "Logging in...";
+
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      authMessage.textContent = error.message;
+    } else {
+      authMessage.textContent = "Welcome back! You're logged in.";
+    }
+  });
+</script>
+
     
 </body>
 </html>
