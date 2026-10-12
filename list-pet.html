@@ -315,95 +315,146 @@
       reasonDetails.required = isOwner;
     });
 
-    form.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      message.textContent = "";
 
-      if (!currentUser) {
-        message.textContent = "Please log in before submitting a listing.";
-        return;
+form.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  message.textContent = "";
+
+  if (!currentUser) {
+    message.textContent = "Please log in before submitting a listing.";
+    return;
+  }
+
+  const photoInput = document.getElementById("pet-photo");
+  const photo = photoInput.files[0];
+
+  if (!photo) {
+    message.textContent = "Please upload a photo of the pet. 🐾";
+    return;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(photo.type)) {
+    message.textContent = "Please use a JPG, PNG, or WebP image.";
+    return;
+  }
+
+  if (photo.size > 10 * 1024 * 1024) {
+    message.textContent = "The photo must be 10 MB or smaller.";
+    return;
+  }
+
+  const type = listingType.value;
+  const isOwner = type === "owner_rehoming";
+
+  if (isOwner &&
+      (!reasonCategory.value || !reasonDetails.value.trim())) {
+    message.textContent =
+      "Please select and explain the reason for rehoming.";
+    return;
+  }
+
+  let description = document.getElementById("description").value.trim();
+
+  if (type === "rescued_stray") {
+    const rescueDetails =
+      document.getElementById("rescue-details").value.trim();
+    const foundDate = document.getElementById("found-date").value;
+
+    if (foundDate) description += "\n\nDate found: " + foundDate;
+    if (rescueDetails) {
+      description += "\n\nRescue circumstances: " + rescueDetails;
+    }
+  }
+
+  const rehomingReason = isOwner
+    ? reasonCategory.value + ": " + reasonDetails.value.trim()
+    : null;
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Uploading photo...";
+  message.textContent = "Uploading your pet's photo...";
+
+  let uploadedPath = null;
+
+  try {
+    const safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = currentUser.id + "/" + crypto.randomUUID() + "-" + safeName;
+
+    const { data: uploadData, error: uploadError } =
+      await supabaseClient.storage
+        .from("pet-photos")
+        .upload(filePath, photo, {
+          contentType: photo.type,
+          upsert: false
+        });
+
+    if (uploadError) throw uploadError;
+    uploadedPath = uploadData.path;
+
+    const { data: publicData } = supabaseClient.storage
+      .from("pet-photos")
+      .getPublicUrl(uploadedPath);
+
+    const pet = {
+      owner_id: currentUser.id,
+      listing_type: type,
+      name: document.getElementById("pet-name").value.trim() || null,
+      animal_type: document.getElementById("animal-type").value,
+      age_description:
+        document.getElementById("age").value.trim() || "Unknown",
+      breed: document.getElementById("breed").value.trim() || "Unknown",
+      found_area: document.getElementById("area").value.trim(),
+      vaccination_info:
+        document.getElementById("vaccination").value.trim() || "Unknown",
+      medical_info:
+        document.getElementById("medical").value.trim() || "Unknown",
+      description: description,
+      rehoming_reason: rehomingReason,
+      photo_url: publicData.publicUrl,
+      verification_status: "pending",
+      status: "pending"
+    };
+
+    submitButton.textContent = "Submitting listing...";
+    message.textContent = "Saving your listing...";
+
+    const { error } = await supabaseClient
+      .from("pets")
+      .insert([pet]);
+
+    if (error) throw error;
+
+    form.reset();
+    ownerFields.classList.add("hidden");
+    strayFields.classList.add("hidden");
+    reasonCategory.required = false;
+    reasonDetails.required = false;
+
+    message.textContent =
+      "Listing submitted successfully! It is now pending review. 🐾";
+  } catch (error) {
+    console.error("Pet listing error:", error);
+    message.textContent =
+      "We couldn't save your listing: " + error.message;
+
+    // Remove an uploaded photo if the listing could not be saved.
+    if (uploadedPath) {
+      const { error: cleanupError } = await supabaseClient.storage
+        .from("pet-photos")
+        .remove([uploadedPath]);
+
+      if (cleanupError) {
+        console.error("Photo cleanup error:", cleanupError);
       }
+    }
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Submit Pet Listing";
+  }
+});
 
-      const type = listingType.value;
-      const isOwner = type === "owner_rehoming";
-
-      if (isOwner &&
-          (!reasonCategory.value || !reasonDetails.value.trim())) {
-        message.textContent =
-          "Please select and explain the reason for rehoming.";
-        return;
-      }
-
-      let description = document.getElementById("description").value.trim();
-
-      if (type === "rescued_stray") {
-        const rescueDetails =
-          document.getElementById("rescue-details").value.trim();
-        const foundDate =
-          document.getElementById("found-date").value;
-
-        if (foundDate) {
-          description += "\n\nDate found: " + foundDate;
-        }
-
-        if (rescueDetails) {
-          description += "\n\nRescue circumstances: " + rescueDetails;
-        }
-      }
-
-      const rehomingReason = isOwner
-        ? reasonCategory.value + ": " + reasonDetails.value.trim()
-        : null;
-
-      const pet = {
-        owner_id: currentUser.id,
-        listing_type: type,
-        name: document.getElementById("pet-name").value.trim() || null,
-        animal_type: document.getElementById("animal-type").value,
-        age_description:
-          document.getElementById("age").value.trim() || "Unknown",
-        breed: document.getElementById("breed").value.trim() || "Unknown",
-        found_area: document.getElementById("area").value.trim(),
-        vaccination_info:
-          document.getElementById("vaccination").value.trim() || "Unknown",
-        medical_info:
-          document.getElementById("medical").value.trim() || "Unknown",
-        description: description,
-        rehoming_reason: rehomingReason,
-        verification_status: "pending",
-        status: "pending"
-      };
-
-      submitButton.disabled = true;
-      submitButton.textContent = "Submitting...";
-      message.textContent = "Saving your listing...";
-
-      try {
-        const { error } = await supabaseClient
-          .from("pets")
-          .insert([pet]);
-
-        if (error) {
-          throw error;
-        }
-
-        form.reset();
-        ownerFields.classList.add("hidden");
-        strayFields.classList.add("hidden");
-        reasonCategory.required = false;
-        reasonDetails.required = false;
-
-        message.textContent =
-          "Listing submitted successfully! It is now pending review. 🐾";
-      } catch (error) {
-        console.error("Pet listing error:", error);
-        message.textContent =
-          "We couldn't save your listing: " + error.message;
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Submit Pet Listing";
-      }
-    });
 
     checkLogin();
   </script>
