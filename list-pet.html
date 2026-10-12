@@ -261,19 +261,36 @@
 
     let currentUser = null;
 
+   
     async function checkLogin() {
       const { data, error } = await supabaseClient.auth.getUser();
 
       if (error || !data.user) {
         loginStatus.textContent =
-          "Please log in on the homepage before listing a pet.";
+          "Please log in or sign up to list a pet. 🐾";
+
+        const loginButton = document.createElement("button");
+        loginButton.type = "button";
+        loginButton.textContent = "Log In / Sign Up";
+        loginButton.style.maxWidth = "240px";
+        loginButton.style.display = "block";
+        loginButton.style.margin = "15px auto";
+
+        loginButton.addEventListener("click", () => {
+          window.location.href = "index.html?next=list-pet";
+        });
+
+        loginStatus.appendChild(document.createElement("br"));
+        loginStatus.appendChild(loginButton);
         return;
       }
 
       currentUser = data.user;
-      loginStatus.textContent = "You're logged in and ready to list a pet! 🐾";
+      loginStatus.textContent =
+        "You're logged in and ready to list a pet! 🐾";
       form.classList.remove("hidden");
     }
+
 
     listingType.addEventListener("change", function () {
       const isOwner = listingType.value === "owner_rehoming";
