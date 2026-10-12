@@ -427,7 +427,45 @@ applyButton.addEventListener("click", async () => {
     document.getElementById("search")
       .addEventListener("input", renderPets);
 
-    loadPets();
+    
+    async function checkLoginAndLoadPets() {
+      const message = document.getElementById("message");
+      const list = document.getElementById("pet-list");
+      const filters = document.querySelector(".filters");
+
+      message.textContent = "Checking your account...";
+      list.style.display = "none";
+      filters.style.display = "none";
+
+      const { data: { session }, error } =
+        await supabaseClient.auth.getSession();
+
+      if (error || !session) {
+        message.textContent =
+          "Please log in or sign up to browse pets available for adoption. 🐾";
+
+        const loginButton = document.createElement("button");
+        loginButton.textContent = "Log In / Sign Up";
+        loginButton.style.maxWidth = "240px";
+        loginButton.style.display = "block";
+        loginButton.style.margin = "20px auto";
+
+        loginButton.addEventListener("click", () => {
+          window.location.href = "index.html?next=adopt";
+        });
+
+        message.appendChild(document.createElement("br"));
+        message.appendChild(loginButton);
+        return;
+      }
+
+      list.style.display = "grid";
+      filters.style.display = "flex";
+      loadPets();
+    }
+
+    checkLoginAndLoadPets();
+
   </script>
 </body>
 </html>
