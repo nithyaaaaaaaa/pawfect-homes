@@ -190,7 +190,7 @@
 
       const { data, error } = await supabaseClient
         .from("pets")
-        .select("id, name, animal_type, age_description, breed, found_area, description, listing_type")
+        .select("id, name, animal_type, age_description, breed, found_area, description, listing_type, photo_url")
         .eq("status", "approved")
         .order("created_at", { ascending: false });
 
