@@ -292,6 +292,7 @@ footer a { text-decoration: underline; }
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
@@ -301,21 +302,38 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_PUBLISHABLE_KEY
 );
 
-const accountUrl = new URL("account.html", new URL(".", window.location.href)).href;
+const params = new URLSearchParams(window.location.search);
+const requestedPage = params.get("next");
+const allowedPages = ["adopt", "list-pet", "account"];
+
+const destinationPage = allowedPages.includes(requestedPage)
+  ? requestedPage + ".html"
+  : "account.html";
+
+const destinationUrl = new URL(
+  destinationPage,
+  window.location.href
+).href;
+
 const signupForm = document.getElementById("signup-form");
 const loginForm = document.getElementById("login-form");
 const authMessage = document.getElementById("auth-message");
 
 function showAuth(mode) {
   const signup = mode === "signup";
+
   signupForm.hidden = !signup;
   loginForm.hidden = signup;
+
   document.getElementById("signup-tab").classList.toggle("active", signup);
   document.getElementById("login-tab").classList.toggle("active", !signup);
+
   document.getElementById("auth-title").textContent =
     signup ? "Join the Pawfect family 🐾" : "Welcome back! 🐾";
+
   document.getElementById("auth-subtitle").textContent =
-    signup ? "Create an account to get started." : "Log in to continue to your dashboard.";
+    signup ? "Create an account to get started." : "Log in to continue.";
+
   authMessage.textContent = "";
 }
 
@@ -329,7 +347,7 @@ signupForm.addEventListener("submit", async function(event) {
   const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: accountUrl }
+    options: { emailRedirectTo: destinationUrl }
   });
 
   if (error) {
@@ -338,10 +356,10 @@ signupForm.addEventListener("submit", async function(event) {
   }
 
   if (data.session) {
-    window.location.href = accountUrl;
+    window.location.href = destinationUrl;
   } else {
     authMessage.textContent =
-      "Account created! Check your email to confirm your account. The link will take you to your dashboard.";
+      "Account created! Please confirm your email. The confirmation link will take you to your chosen page.";
   }
 });
 
@@ -359,20 +377,31 @@ loginForm.addEventListener("submit", async function(event) {
 
   if (error) {
     authMessage.textContent =
-      "We couldn't log you in. Your account may not exist, or your email/password may be incorrect. Please check your details or sign up.";
+      "We couldn't log you in. Please check your email and password, or sign up.";
     return;
   }
 
   if (data.session) {
-    window.location.href = accountUrl;
+    window.location.href = destinationUrl;
   }
 });
 
 supabaseClient.auth.getSession().then(({ data }) => {
   if (data.session) {
-    // Existing signed-in users can open their dashboard from the account link.
-    const accountLink = document.querySelector('footer a[href="account.html"]');
-    if (accountLink) accountLink.textContent = "Open My Dashboard";
+    const accountLink = document.querySelector(
+      'footer a[href="account.html"]'
+    );
+
+    if (accountLink) {
+      accountLink.textContent = "Open My Dashboard";
+    }
+  }
+
+  if (requestedPage && allowedPages.includes(requestedPage)) {
+    showAuth("login");
+    document.getElementById("auth-section").scrollIntoView({
+      behavior: "smooth"
+    });
   }
 });
 </script>
