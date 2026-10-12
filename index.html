@@ -419,10 +419,24 @@ signupForm.addEventListener("submit", async function(event) {
     options: { emailRedirectTo: destinationUrl }
   });
 
+ 
   if (error) {
     authMessage.textContent = error.message;
     return;
   }
+
+  if (
+    data.user &&
+    !data.session &&
+    data.user.identities &&
+    data.user.identities.length === 0
+  ) {
+    authMessage.textContent =
+      "This email may already be registered. Please log in instead. 💚";
+    showAuth("login");
+    return;
+  }
+
 
   if (data.session) {
     window.location.href = destinationUrl;
