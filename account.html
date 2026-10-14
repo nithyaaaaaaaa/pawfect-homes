@@ -383,6 +383,17 @@ function showTab(tab) {
       details.textContent = detailsText;
 
       card.append(title, status, details);
+      
+    const chatButton = document.createElement("button");
+    chatButton.className = "chat-button";
+    chatButton.textContent = "Open Private Chat";
+
+    chatButton.addEventListener("click", async () => {
+      await openChat(application, card, user);
+    });
+
+    card.appendChild(chatButton);
+
       content.appendChild(card);
     }
 
