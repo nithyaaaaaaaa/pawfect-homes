@@ -847,6 +847,24 @@ const floatingChatPanel =
   document.getElementById("floatingChatPanel");
 const floatingChatClose =
   document.getElementById("floatingChatClose");
+    
+const enableChatNotifications =
+  document.getElementById("enableChatNotifications");
+
+enableChatNotifications.addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    alert("Your browser does not support notifications.");
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+
+  if (permission === "granted") {
+    enableChatNotifications.textContent = "Notifications enabled ✓";
+  } else {
+    enableChatNotifications.textContent = "Notifications blocked";
+  }
+});
 
 
 floatingChatToggle.addEventListener("click", async () => {
