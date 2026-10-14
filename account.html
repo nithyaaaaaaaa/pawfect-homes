@@ -201,32 +201,50 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
+   
+const SUPABASE_URL = "https://rgcgzsoubvbqqxcrazoj.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3IQCKIWicsRLOH1lp4W7cA_gQ-iO5uC";
 
-    const supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
-    );
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
-    const message = document.getElementById("message");
+const message = document.getElementById("message");
 const content = document.getElementById("content");
 const petsTab = document.getElementById("petsTab");
-
 const receivedTab = document.getElementById("receivedTab");
+const refreshBtn = document.getElementById("refreshBtn");
 
 let currentTab = "pets";
-    
 let activeChatChannel = null;
 
-function escapeChatText(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
+function showTab(tab) {
+  currentTab = tab;
+  petsTab.classList.toggle("active", tab === "pets");
+  receivedTab.classList.toggle("active", tab === "received");
+  loadData();
+}
+
+function addCard(titleText, statusText, detailsText) {
+  const card = document.createElement("article");
+  card.className = "card";
+
+  const title = document.createElement("h2");
+  title.textContent = titleText || "Untitled";
+
+  const status = document.createElement("span");
+  status.className = "status";
+  status.textContent = statusText || "Unknown";
+
+  const details = document.createElement("p");
+  details.className = "details";
+  details.textContent = detailsText || "";
+
+  card.append(title, status, details);
+  content.appendChild(card);
+
+  // Pet listing cards intentionally have no Chat button.
 }
 
 async function openChat(application, card, user) {
@@ -243,31 +261,44 @@ async function openChat(application, card, user) {
 
   const panel = document.createElement("section");
   panel.className = "chat-panel";
-  panel.innerHTML = `
-    <h3>Chat about ${escapeChatText(application.pet_name || "your pet")}</h3>
-    <p class="chat-note">Only you and the other participant can access this conversation.</p>
-    <div class="chat-messages">Loading messages...</div>
-    <p class="chat-note chat-status"></p>
-    <form class="chat-form">
-      <input type="text" maxlength="2000" placeholder="Type your message..." required>
-      <button type="submit">Send</button>
-    </form>
-  `;
 
+  const heading = document.createElement("h3");
+  heading.textContent = "Chat about " + (application.pet_name || "your pet");
+
+  const note = document.createElement("p");
+  note.className = "chat-note";
+  note.textContent = "Private conversation about this adoption application.";
+
+  const messagesBox = document.createElement("div");
+  messagesBox.className = "chat-messages";
+  messagesBox.textContent = "Loading messages...";
+
+  const status = document.createElement("p");
+  status.className = "chat-note chat-status";
+
+  const form = document.createElement("form");
+  form.className = "chat-form";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = 2000;
+  input.placeholder = "Type your message...";
+  input.required = true;
+
+  const sendButton = document.createElement("button");
+  sendButton.type = "submit";
+  sendButton.textContent = "Send";
+
+  form.append(input, sendButton);
+  panel.append(heading, note, messagesBox, status, form);
   card.appendChild(panel);
-
-  const messagesBox = panel.querySelector(".chat-messages");
-  const form = panel.querySelector(".chat-form");
-  const input = form.querySelector("input");
-  const sendButton = form.querySelector("button");
-  const status = panel.querySelector(".chat-status");
 
   const closed = application.application_status === "declined";
 
   if (closed) {
     input.disabled = true;
     sendButton.disabled = true;
-    status.textContent = "This application is closed. You can read previous messages.";
+    status.textContent = "This application is closed. Previous messages remain available.";
   }
 
   async function refreshMessages() {
@@ -294,7 +325,8 @@ async function openChat(application, card, user) {
       bubble.className = "chat-message";
 
       const sender = document.createElement("small");
-      sender.textContent = msg.sender_id === user.id ? "You" : "Other participant";
+      sender.textContent =
+        msg.sender_id === user.id ? "You" : "Other participant";
 
       const body = document.createElement("div");
       body.textContent = msg.message;
@@ -326,7 +358,7 @@ async function openChat(application, card, user) {
         message: text
       });
 
-    sendButton.disabled = false;
+    sendButton.disabled = closed;
 
     if (error) {
       status.textContent = "Message not sent: " + error.message;
@@ -340,12 +372,14 @@ async function openChat(application, card, user) {
 
   await refreshMessages();
 
+  if (!panel.isConnected) return;
+
   activeChatChannel = supabaseClient
     .channel("chat-" + application.application_id)
     .on(
       "postgres_changes",
       {
-        event: "*",
+        event: "INSERT",
         schema: "public",
         table: "adoption_messages",
         filter: "application_id=eq." + application.application_id
@@ -355,156 +389,185 @@ async function openChat(application, card, user) {
     .subscribe();
 }
 
-    
-let activeChatChannel = null;
+async function loadData() {
+  content.replaceChildren();
+  message.textContent = "Loading...";
 
-async function openChat(application, card, user) {
   if (activeChatChannel) {
     await supabaseClient.removeChannel(activeChatChannel);
     activeChatChannel = null;
   }
 
-  const oldPanel = card.querySelector(".chat-panel");
-  if (oldPanel) {
-    oldPanel.remove();
+  const {
+    data: { user },
+    error: authError
+  } = await supabaseClient.auth.getUser();
+
+  if (authError || !user) {
+    message.textContent = "Please sign in first using your Pawfect Homes account.";
     return;
   }
 
-  const panel = document.createElement("section");
-  panel.className = "chat-panel";
-  panel.innerHTML = `
-    <h3>Private chat about ${escapeChatText(application.pet_name || "your pet")}</h3>
-    <p class="chat-note">Only you and this applicant can access this conversation.</p>
-    <div class="chat-messages">Loading messages...</div>
-    <p class="chat-note chat-status"></p>
-    <form class="chat-form">
-      <input type="text" maxlength="2000"
-        placeholder="Type your message..." required>
-      <button type="submit">Send</button>
-    </form>
-  `;
-
-  card.appendChild(panel);
-
-  const messagesBox = panel.querySelector(".chat-messages");
-  const form = panel.querySelector(".chat-form");
-  const input = form.querySelector("input");
-  const sendButton = form.querySelector("button");
-  const status = panel.querySelector(".chat-status");
-
-  const closed = ["declined"].includes(application.application_status);
-
-  if (closed) {
-    input.disabled = true;
-    sendButton.disabled = true;
-    status.textContent = "This application is closed. You can read previous messages.";
-  }
-
-  function escapeChatText(value) {
-    return String(value).replace(/[&<>"']/g, char => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[char]);
-  }
-
-  async function refreshMessages() {
-    const { data, error } = await supabaseClient
-      .from("adoption_messages")
-      .select("id, sender_id, message, created_at")
-      .eq("application_id", application.application_id)
-      .order("created_at", { ascending: true });
+  if (currentTab === "received") {
+    const { data, error } = await supabaseClient.rpc(
+      "owner_list_applications"
+    );
 
     if (error) {
-      messagesBox.textContent = "Could not load messages: " + error.message;
+      console.error(error);
+      message.textContent = "Could not load received applications: " + error.message;
       return;
     }
-
-    messagesBox.replaceChildren();
 
     if (!data || data.length === 0) {
-      messagesBox.textContent = "No messages yet. Start the conversation!";
+      message.textContent = "No applications yet for your pets. Check back later! 🐾";
       return;
     }
 
-    data.forEach(msg => {
-      const bubble = document.createElement("div");
-      bubble.className = "chat-message";
+    message.textContent = data.length + " application(s) received.";
 
-      const sender = document.createElement("small");
-      sender.textContent = msg.sender_id === user.id ? "You" : "Other participant";
+    data.forEach(application => {
+      const card = document.createElement("article");
+      card.className = "card";
 
-      const body = document.createElement("div");
-      body.textContent = msg.message;
+      const title = document.createElement("h2");
+      title.textContent = application.pet_name || "Your pet";
 
-      const time = document.createElement("small");
-      time.textContent = new Date(msg.created_at).toLocaleString();
+      const status = document.createElement("span");
+      status.className = "status";
+      status.textContent = "Application: " + application.application_status;
 
-      bubble.append(sender, body, time);
-      messagesBox.appendChild(bubble);
-    });
+      const details = document.createElement("p");
+      details.className = "details";
+      details.textContent =
+        "Applicant: " + (application.full_name || "Not provided") +
+        "\nPhone: " + (application.phone || "Not provided") +
+        "\nLiving situation: " + (application.living_situation || "Not provided") +
+        "\nPet experience: " + (application.pet_experience || "Not provided") +
+        "\nSubmitted: " +
+        (application.submitted_at
+          ? new Date(application.submitted_at).toLocaleString()
+          : "Unknown");
 
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-  }
+      card.append(title, status, details);
 
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
+      // Chat belongs on applicant cards, not pet listing cards.
+      const chatButton = document.createElement("button");
+      chatButton.className = "chat-button";
+      chatButton.textContent = "Chat";
 
-    const text = input.value.trim();
-    if (!text || closed) return;
-
-    sendButton.disabled = true;
-    status.textContent = "Sending...";
-
-    const { error } = await supabaseClient
-      .from("adoption_messages")
-      .insert({
-        application_id: application.application_id,
-        sender_id: user.id,
-        message: text
+      chatButton.addEventListener("click", async () => {
+        await openChat(application, card, user);
       });
 
-    sendButton.disabled = false;
+      card.appendChild(chatButton);
 
-    if (error) {
-      status.textContent = "Message not sent: " + error.message;
-      return;
-    }
+      if (application.application_status === "pending") {
+        const choose = document.createElement("button");
+        choose.className = "choose";
+        choose.textContent = "Choose this adopter";
 
-    input.value = "";
-    status.textContent = "";
-    await refreshMessages();
+        choose.addEventListener("click", async () => {
+          if (!confirm(
+            "Choose " + (application.full_name || "this applicant") +
+            " for " + (application.pet_name || "your pet") +
+            "? Other pending applications for this pet will be declined, and the pet will be marked adopted."
+          )) return;
+
+          choose.disabled = true;
+
+          const { data: success, error: reviewError } =
+            await supabaseClient.rpc("owner_review_application", {
+              p_application_id: application.application_id,
+              p_new_status: "approved"
+            });
+
+          if (reviewError || success !== true) {
+            alert(
+              "Could not choose this applicant: " +
+              (reviewError?.message || "The application may already have been reviewed.")
+            );
+            choose.disabled = false;
+            return;
+          }
+
+          alert("Adopter selected successfully! 🐾");
+          await loadData();
+        });
+
+        const decline = document.createElement("button");
+        decline.className = "decline";
+        decline.textContent = "Decline";
+
+        decline.addEventListener("click", async () => {
+          if (!confirm(
+            "Decline this application from " +
+            (application.full_name || "this applicant") + "?"
+          )) return;
+
+          decline.disabled = true;
+
+          const { data: success, error: reviewError } =
+            await supabaseClient.rpc("owner_review_application", {
+              p_application_id: application.application_id,
+              p_new_status: "declined"
+            });
+
+          if (reviewError || success !== true) {
+            alert(
+              "Could not decline this application: " +
+              (reviewError?.message || "The application may already have been reviewed.")
+            );
+            decline.disabled = false;
+            return;
+          }
+
+          await loadData();
+        });
+
+        card.append(choose, decline);
+      }
+
+      content.appendChild(card);
+    });
+
+    return;
+  }
+
+  // My Pet Listings tab
+  const { data, error } = await supabaseClient.rpc("my_pet_listings");
+
+  if (error) {
+    console.error(error);
+    message.textContent = "Could not load listings: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    message.textContent = "You haven't submitted any pet listings yet.";
+    return;
+  }
+
+  message.textContent = data.length + " pet listing(s).";
+
+  data.forEach(pet => {
+    addCard(
+      pet.name,
+      "Listing: " + pet.status,
+      "Animal: " + (pet.animal_type || "Not specified") +
+      "\nBreed: " + (pet.breed || "Not specified") +
+      "\nAge: " + (pet.age_description || "Not specified") +
+      "\nSubmitted: " + new Date(pet.created_at).toLocaleDateString()
+    );
   });
-
-  await refreshMessages();
-
-  activeChatChannel = supabaseClient
-    .channel("chat-" + application.application_id)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "adoption_messages",
-        filter: "application_id=eq." + application.application_id
-      },
-      refreshMessages
-    )
-    .subscribe();
 }
 
+petsTab.addEventListener("click", () => showTab("pets"));
+receivedTab.addEventListener("click", () => showTab("received"));
+refreshBtn.addEventListener("click", loadData);
 
-function showTab(tab) {
-  currentTab = tab;
+loadData();
 
-  petsTab.classList.toggle("active", tab === "pets");
-  
-  receivedTab.classList.toggle("active", tab === "received");
-
-  loadData();
-}
 
     function addCard(titleText, statusText, detailsText) {
       const card = document.createElement("article");
