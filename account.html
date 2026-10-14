@@ -118,17 +118,22 @@
     );
 
     const message = document.getElementById("message");
-    const content = document.getElementById("content");
-    const petsTab = document.getElementById("petsTab");
-    const appsTab = document.getElementById("appsTab");
-    let currentTab = "pets";
+const content = document.getElementById("content");
+const petsTab = document.getElementById("petsTab");
+const appsTab = document.getElementById("appsTab");
+const receivedTab = document.getElementById("receivedTab");
 
-    function showTab(tab) {
-      currentTab = tab;
-      petsTab.classList.toggle("active", tab === "pets");
-      appsTab.classList.toggle("active", tab === "apps");
-      loadData();
-    }
+let currentTab = "pets";
+
+function showTab(tab) {
+  currentTab = tab;
+
+  petsTab.classList.toggle("active", tab === "pets");
+  appsTab.classList.toggle("active", tab === "apps");
+  receivedTab.classList.toggle("active", tab === "received");
+
+  loadData();
+}
 
     function addCard(titleText, statusText, detailsText) {
       const card = document.createElement("article");
