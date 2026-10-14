@@ -841,13 +841,16 @@ const floatingChatPanel =
 const floatingChatClose =
   document.getElementById("floatingChatClose");
 
+
 floatingChatToggle.addEventListener("click", async () => {
   floatingChatPanel.hidden = !floatingChatPanel.hidden;
 
   if (!floatingChatPanel.hidden) {
     await loadFloatingChats();
+    await updateUnreadChatCount();
   }
 });
+
 
 floatingChatClose.addEventListener("click", () => {
   floatingChatPanel.hidden = true;
