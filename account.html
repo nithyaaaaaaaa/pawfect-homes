@@ -345,8 +345,9 @@ if (currentTab === "received") {
     }
 
     petsTab.addEventListener("click", () => showTab("pets"));
-    appsTab.addEventListener("click", () => showTab("apps"));
-    document.getElementById("refreshBtn").addEventListener("click", loadData);
+appsTab.addEventListener("click", () => showTab("apps"));
+receivedTab.addEventListener("click", () => showTab("received"));
+document.getElementById("refreshBtn").addEventListener("click", loadData);
 
     loadData();
   </script>
