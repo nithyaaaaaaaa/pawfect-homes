@@ -758,6 +758,40 @@ floatingChatToggle.addEventListener("click", async () => {
 floatingChatClose.addEventListener("click", () => {
   floatingChatPanel.hidden = true;
 });
+    
+let floatingInboxChannel = null;
+
+function startFloatingInboxUpdates() {
+  if (floatingInboxChannel) return;
+
+  floatingInboxChannel = supabaseClient
+    .channel("floating-inbox-live-updates")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "adoption_messages"
+      },
+      () => {
+        const chatIsOpen =
+          document.querySelector(
+            "#floatingChatList .chat-panel"
+          );
+
+        if (
+          !floatingChatPanel.hidden &&
+          !chatIsOpen
+        ) {
+          loadFloatingChats();
+        }
+      }
+    )
+    .subscribe();
+}
+
+startFloatingInboxUpdates();
+
 
 petsTab.addEventListener("click", () => showTab("pets"));
 receivedTab.addEventListener("click", () => showTab("received"));
