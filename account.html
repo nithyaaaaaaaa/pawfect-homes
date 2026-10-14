@@ -533,6 +533,17 @@ function showTab(tab) {
 
     card.appendChild(chatButton);
 
+      
+    const chatButton = document.createElement("button");
+    chatButton.className = "chat-button";
+    chatButton.textContent = "Chat";
+
+    chatButton.addEventListener("click", async () => {
+      await openChat(application, card, user);
+    });
+
+    card.appendChild(chatButton);
+
       content.appendChild(card);
     }
 
