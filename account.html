@@ -211,6 +211,24 @@
 
   <p id="message">Checking your account...</p>
   <main id="content"></main>
+  
+<div id="floatingChatWidget">
+  <button id="floatingChatToggle" type="button">
+    💬 Chats
+  </button>
+
+  <section id="floatingChatPanel" hidden>
+    <div class="floating-chat-header">
+      <strong>Your chats</strong>
+      <button id="floatingChatClose" type="button"
+        aria-label="Close chats">×</button>
+    </div>
+    <div id="floatingChatList">
+      Open your chats to see conversations.
+    </div>
+  </section>
+</div>
+
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
