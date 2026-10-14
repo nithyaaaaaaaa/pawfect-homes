@@ -671,11 +671,100 @@ async function loadData() {
   });
 }
 
+
+async function loadFloatingChats() {
+  const list = document.getElementById("floatingChatList");
+  list.textContent = "Loading conversations...";
+
+  const { data: { user }, error: authError } =
+    await supabaseClient.auth.getUser();
+
+  if (authError || !user) {
+    list.textContent = "Please sign in to view your chats.";
+    return;
+  }
+
+  const { data, error } =
+    await supabaseClient.rpc("my_adoption_chats");
+
+  if (error) {
+    list.textContent = "Could not load chats: " + error.message;
+    return;
+  }
+
+  // Show conversations after at least one message is sent.
+  const chats = (data || []).filter(chat => chat.last_message_at);
+
+  list.replaceChildren();
+
+  if (chats.length === 0) {
+    list.textContent = "No conversations yet. Start a chat from Applications Received!";
+    return;
+  }
+
+  chats.forEach(chat => {
+    const item = document.createElement("article");
+    item.className = "inbox-conversation";
+
+    const title = document.createElement("strong");
+    title.textContent = chat.pet_name || "Pet conversation";
+
+    const person = document.createElement("p");
+    person.textContent = chat.other_person_name || "Other participant";
+
+    const preview = document.createElement("p");
+    preview.textContent = chat.last_message || "No messages yet";
+
+    const status = document.createElement("p");
+    status.textContent = "Application: " + chat.application_status;
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "inbox-open-chat";
+    openButton.textContent = "Open chat";
+
+    openButton.addEventListener("click", async () => {
+      openButton.disabled = true;
+      try {
+        await openChat(chat, item, user);
+      } catch (err) {
+        console.error(err);
+        alert("Could not open this chat. Please try again.");
+      } finally {
+        openButton.disabled = false;
+      }
+    });
+
+    item.append(title, person, preview, status, openButton);
+    list.appendChild(item);
+  });
+}
+
+const floatingChatToggle =
+  document.getElementById("floatingChatToggle");
+const floatingChatPanel =
+  document.getElementById("floatingChatPanel");
+const floatingChatClose =
+  document.getElementById("floatingChatClose");
+
+floatingChatToggle.addEventListener("click", async () => {
+  floatingChatPanel.hidden = !floatingChatPanel.hidden;
+
+  if (!floatingChatPanel.hidden) {
+    await loadFloatingChats();
+  }
+});
+
+floatingChatClose.addEventListener("click", () => {
+  floatingChatPanel.hidden = true;
+});
+
 petsTab.addEventListener("click", () => showTab("pets"));
 receivedTab.addEventListener("click", () => showTab("received"));
 refreshBtn.addEventListener("click", loadData);
 
 loadData();
+
 
 
     
