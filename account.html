@@ -357,6 +357,28 @@ function addCard(titleText, statusText, detailsText) {
   // Pet listing cards intentionally have no Chat button.
 }
 
+async function markChatAsRead(applicationId, userId) {
+  const { error } = await supabaseClient
+    .from("adoption_chat_reads")
+    .upsert(
+      {
+        application_id: applicationId,
+        user_id: userId,
+        last_read_at: new Date().toISOString()
+      },
+      {
+        onConflict: "application_id,user_id"
+      }
+    );
+
+  if (error) {
+    console.error("Could not mark chat as read:", error);
+    return;
+  }
+
+  await updateUnreadChatCount();
+}
+
 async function openChat(application, card, user) {
   if (activeChatChannel) {
     await supabaseClient.removeChannel(activeChatChannel);
