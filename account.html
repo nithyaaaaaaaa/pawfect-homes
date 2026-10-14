@@ -166,6 +166,126 @@ function showTab(tab) {
           "Please sign in first using your Pawfect Homes account.";
         return;
       }
+      
+if (currentTab === "received") {
+  const { data, error } = await supabaseClient.rpc(
+    "owner_list_applications"
+  );
+
+  if (error) {
+    console.error(error);
+    message.textContent =
+      "Could not load received applications: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    message.textContent =
+      "No applications yet for your pets. Check back later! 🐾";
+    return;
+  }
+
+  message.textContent =
+    data.length + " application(s) received.";
+
+  data.forEach(application => {
+    const card = document.createElement("article");
+    card.className = "card";
+
+    const title = document.createElement("h2");
+    title.textContent = application.pet_name || "Your pet";
+
+    const status = document.createElement("span");
+    status.className = "status";
+    status.textContent =
+      "Application: " + application.application_status;
+
+    const details = document.createElement("p");
+    details.className = "details";
+    details.textContent =
+      "Applicant: " + (application.full_name || "Not provided") +
+      "\nPhone: " + (application.phone || "Not provided") +
+      "\nLiving situation: " +
+      (application.living_situation || "Not provided") +
+      "\nPet experience: " +
+      (application.pet_experience || "Not provided") +
+      "\nSubmitted: " +
+      (application.submitted_at
+        ? new Date(application.submitted_at).toLocaleString()
+        : "Unknown");
+
+    card.append(title, status, details);
+
+    if (application.application_status === "pending") {
+      const choose = document.createElement("button");
+      choose.textContent = "Choose this adopter";
+
+      choose.addEventListener("click", async () => {
+        if (!confirm(
+          "Choose " + application.full_name +
+          " for " + application.pet_name +
+          "? Other pending applications for this pet will be declined, and the pet will be marked adopted."
+        )) return;
+
+        choose.disabled = true;
+
+        const { data: success, error: reviewError } =
+          await supabaseClient.rpc("owner_review_application", {
+            p_application_id: application.application_id,
+            p_new_status: "approved"
+          });
+
+        if (reviewError || success !== true) {
+          alert(
+            "Could not choose this applicant: " +
+            (reviewError?.message || "The application may already have been reviewed.")
+          );
+          choose.disabled = false;
+          return;
+        }
+
+        alert("Adopter selected successfully! 🐾");
+        await loadData();
+      });
+
+      const decline = document.createElement("button");
+      decline.textContent = "Decline";
+
+      decline.addEventListener("click", async () => {
+        if (!confirm(
+          "Decline this application from " +
+          (application.full_name || "this applicant") + "?"
+        )) return;
+
+        decline.disabled = true;
+
+        const { data: success, error: reviewError } =
+          await supabaseClient.rpc("owner_review_application", {
+            p_application_id: application.application_id,
+            p_new_status: "declined"
+          });
+
+        if (reviewError || success !== true) {
+          alert(
+            "Could not decline this application: " +
+            (reviewError?.message || "The application may already have been reviewed.")
+          );
+          decline.disabled = false;
+          return;
+        }
+
+        await loadData();
+      });
+
+      card.append(choose, decline);
+    }
+
+    content.appendChild(card);
+  });
+
+  return;
+}
+
 
       if (currentTab === "pets") {
         const { data, error } = await supabaseClient.rpc("my_pet_listings");
