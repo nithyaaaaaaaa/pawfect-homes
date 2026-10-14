@@ -741,6 +741,77 @@ async function loadFloatingChats() {
   });
 }
 
+async function updateUnreadChatCount() {
+  const button = document.getElementById("floatingChatToggle");
+  if (!button) return;
+
+  const { data: { user }, error: authError } =
+    await supabaseClient.auth.getUser();
+
+  if (authError || !user) {
+    unreadChatCount = 0;
+    button.textContent = "💬 Chats";
+    return;
+  }
+
+  const { data: chats, error: chatsError } =
+    await supabaseClient.rpc("my_adoption_chats");
+
+  if (chatsError) {
+    console.error("Could not count unread chats:", chatsError);
+    return;
+  }
+
+  const { data: reads, error: readsError } =
+    await supabaseClient
+      .from("adoption_chat_reads")
+      .select("application_id, last_read_at")
+      .eq("user_id", user.id);
+
+  if (readsError) {
+    console.error("Could not load read status:", readsError);
+    return;
+  }
+
+  const readMap = new Map(
+    (reads || []).map(read => [
+      read.application_id,
+      read.last_read_at
+    ])
+  );
+
+  let totalUnread = 0;
+
+  for (const chat of chats || []) {
+    const lastRead = readMap.get(chat.application_id);
+
+    let query = supabaseClient
+      .from("adoption_messages")
+      .select("id")
+      .eq("application_id", chat.application_id)
+      .neq("sender_id", user.id);
+
+    if (lastRead) {
+      query = query.gt("created_at", lastRead);
+    }
+
+    const { data: messages, error } = await query;
+
+    if (error) {
+      console.error("Could not count messages:", error);
+      continue;
+    }
+
+    totalUnread += (messages || []).length;
+  }
+
+  unreadChatCount = totalUnread;
+  button.textContent =
+    totalUnread > 0
+      ? `💬 Chats (${totalUnread})`
+      : "💬 Chats";
+}
+
 const floatingChatToggle =
   document.getElementById("floatingChatToggle");
 const floatingChatPanel =
