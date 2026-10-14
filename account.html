@@ -80,6 +80,41 @@
     }
 
     .details { line-height: 1.7; white-space: pre-line; }
+    
+    .choose,
+    .decline {
+      border: none;
+      border-radius: 9px;
+      padding: 11px 18px;
+      margin: 8px 8px 4px 0;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+    }
+
+    .choose {
+      background: #2e7d32;
+    }
+
+    .choose:hover {
+      background: #1b5e20;
+    }
+
+    .decline {
+      background: #d32f2f;
+    }
+
+    .decline:hover {
+      background: #b71c1c;
+    }
+
+    .choose:disabled,
+    .decline:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
   </style>
 </head>
 <body>
