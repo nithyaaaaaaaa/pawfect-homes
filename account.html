@@ -390,7 +390,7 @@ async function openChat(application, card, user) {
     oldPanel.remove();
     return;
   }
-
+  await markChatAsRead(application.application_id, user.id);
   const panel = document.createElement("section");
   panel.className = "chat-panel";
 
