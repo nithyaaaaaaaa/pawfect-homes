@@ -216,6 +216,146 @@ const petsTab = document.getElementById("petsTab");
 const receivedTab = document.getElementById("receivedTab");
 
 let currentTab = "pets";
+    
+let activeChatChannel = null;
+
+async function openChat(application, card, user) {
+  if (activeChatChannel) {
+    await supabaseClient.removeChannel(activeChatChannel);
+    activeChatChannel = null;
+  }
+
+  const oldPanel = card.querySelector(".chat-panel");
+  if (oldPanel) {
+    oldPanel.remove();
+    return;
+  }
+
+  const panel = document.createElement("section");
+  panel.className = "chat-panel";
+  panel.innerHTML = `
+    <h3>Private chat about ${escapeChatText(application.pet_name || "your pet")}</h3>
+    <p class="chat-note">Only you and this applicant can access this conversation.</p>
+    <div class="chat-messages">Loading messages...</div>
+    <p class="chat-note chat-status"></p>
+    <form class="chat-form">
+      <input type="text" maxlength="2000"
+        placeholder="Type your message..." required>
+      <button type="submit">Send</button>
+    </form>
+  `;
+
+  card.appendChild(panel);
+
+  const messagesBox = panel.querySelector(".chat-messages");
+  const form = panel.querySelector(".chat-form");
+  const input = form.querySelector("input");
+  const sendButton = form.querySelector("button");
+  const status = panel.querySelector(".chat-status");
+
+  const closed = ["declined"].includes(application.application_status);
+
+  if (closed) {
+    input.disabled = true;
+    sendButton.disabled = true;
+    status.textContent = "This application is closed. You can read previous messages.";
+  }
+
+  function escapeChatText(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+
+  async function refreshMessages() {
+    const { data, error } = await supabaseClient
+      .from("adoption_messages")
+      .select("id, sender_id, message, created_at")
+      .eq("application_id", application.application_id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      messagesBox.textContent = "Could not load messages: " + error.message;
+      return;
+    }
+
+    messagesBox.replaceChildren();
+
+    if (!data || data.length === 0) {
+      messagesBox.textContent = "No messages yet. Start the conversation!";
+      return;
+    }
+
+    data.forEach(msg => {
+      const bubble = document.createElement("div");
+      bubble.className = "chat-message";
+
+      const sender = document.createElement("small");
+      sender.textContent = msg.sender_id === user.id ? "You" : "Other participant";
+
+      const body = document.createElement("div");
+      body.textContent = msg.message;
+
+      const time = document.createElement("small");
+      time.textContent = new Date(msg.created_at).toLocaleString();
+
+      bubble.append(sender, body, time);
+      messagesBox.appendChild(bubble);
+    });
+
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const text = input.value.trim();
+    if (!text || closed) return;
+
+    sendButton.disabled = true;
+    status.textContent = "Sending...";
+
+    const { error } = await supabaseClient
+      .from("adoption_messages")
+      .insert({
+        application_id: application.application_id,
+        sender_id: user.id,
+        message: text
+      });
+
+    sendButton.disabled = false;
+
+    if (error) {
+      status.textContent = "Message not sent: " + error.message;
+      return;
+    }
+
+    input.value = "";
+    status.textContent = "";
+    await refreshMessages();
+  });
+
+  await refreshMessages();
+
+  activeChatChannel = supabaseClient
+    .channel("chat-" + application.application_id)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "adoption_messages",
+        filter: "application_id=eq." + application.application_id
+      },
+      refreshMessages
+    )
+    .subscribe();
+}
+
 
 function showTab(tab) {
   currentTab = tab;
