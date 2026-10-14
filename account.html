@@ -253,7 +253,8 @@ if (currentTab === "received") {
 
     if (application.application_status === "pending") {
       const choose = document.createElement("button");
-      choose.textContent = "Choose this adopter";
+choose.className = "choose";
+choose.textContent = "Choose this adopter";
 
       choose.addEventListener("click", async () => {
         if (!confirm(
