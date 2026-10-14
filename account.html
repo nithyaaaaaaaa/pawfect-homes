@@ -867,19 +867,37 @@ function startFloatingInboxUpdates() {
         schema: "public",
         table: "adoption_messages"
       },
-      () => {
+      
+      async payload => {
         const chatIsOpen =
           document.querySelector(
             "#floatingChatList .chat-panel"
           );
 
+        if (chatIsOpen) {
+          await updateUnreadChatCount();
+          return;
+        }
+
+        if (!floatingChatPanel.hidden) {
+          await loadFloatingChats();
+        }
+
+        await updateUnreadChatCount();
+
         if (
-          !floatingChatPanel.hidden &&
-          !chatIsOpen
+          payload.new.sender_id !==
+          (await supabaseClient.auth.getUser()).data.user?.id
         ) {
-          loadFloatingChats();
+          if ("Notification" in window &&
+              Notification.permission === "granted") {
+            new Notification("Pawfect Homes", {
+              body: "You received a new chat message."
+            });
+          }
         }
       }
+
     )
     .subscribe();
 }
