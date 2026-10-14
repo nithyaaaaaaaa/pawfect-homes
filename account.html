@@ -285,7 +285,8 @@ choose.textContent = "Choose this adopter";
       });
 
       const decline = document.createElement("button");
-      decline.textContent = "Decline";
+decline.className = "decline";
+decline.textContent = "Decline";
 
       decline.addEventListener("click", async () => {
         if (!confirm(
