@@ -474,7 +474,10 @@ async function openChat(application, card, user) {
 
     data.forEach(msg => {
       const bubble = document.createElement("div");
-      bubble.className = "chat-message";
+      bubble.className =
+  msg.sender_id === user.id
+    ? "chat-message my-message"
+    : "chat-message their-message";
 
       const sender = document.createElement("small");
       sender.textContent =
