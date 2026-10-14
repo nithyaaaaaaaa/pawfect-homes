@@ -350,10 +350,7 @@ decline.textContent = "Decline";
             "\nSubmitted: " + new Date(pet.created_at).toLocaleDateString()
           );
         });
-      } else {
-        const { data, error } = await supabaseClient.rpc(
-          "my_adoption_applications"
-        );
+     
 
         if (error) {
           console.error(error);
